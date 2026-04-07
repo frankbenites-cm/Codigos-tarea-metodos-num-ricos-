@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# === 1. Leer archivo Excel ===
+# Ajusta el nombre del archivo si es necesario
+archivo = "Ejercicio_semana2.xlsx"
+data = pd.read_excel(archivo)
+
+# Se asume que las columnas se llaman 'x' y 'y'
+x = data['x'].values
+y = data['y'].values
+
+# === 2. Método de Lagrange ===
+def lagrange(x, y, xp):
+    n = len(x)
+    yp = 0
+    for i in range(n):
+        Li = 1
+        for j in range(n):
+            if i != j:
+                Li *= (xp - x[j]) / (x[i] - x[j])
+        yp += y[i] * Li
+    return yp
+
+# === 3. Método de Newton (Diferencias Divididas) ===
+def diferencias_divididas(x, y):
+    n = len(x)
+    coef = np.copy(y).astype(float)
+    
+    for j in range(1, n):
+        coef[j:n] = (coef[j:n] - coef[j-1:n-1]) / (x[j:n] - x[0:n-j])
+    
+    return coef
+
+def newton_eval(x, coef, xp):
+    n = len(coef)
+    yp = coef[n-1]
+    for k in range(n-2, -1, -1):
+        yp = yp * (xp - x[k]) + coef[k]
+    return yp
+
+coef_newton = diferencias_divididas(x, y)
+
+# === 4. Evaluar en x = 3.5 ===
+xp = 3.5
+y_lagrange = lagrange(x, y, xp)
+y_newton = newton_eval(x, coef_newton, xp)
+
+print("Evaluación en x = 3.5")
+print("Lagrange:", y_lagrange)
+print("Newton:", y_newton)
+
+# === 5. Graficar ===
+x_vals = np.linspace(min(x), max(x), 200)
+
+y_lag_vals = [lagrange(x, y, xi) for xi in x_vals]
+y_new_vals = [newton_eval(x, coef_newton, xi) for xi in x_vals]
+
+plt.plot(x_vals, y_lag_vals, label="Lagrange")
+plt.plot(x_vals, y_new_vals, linestyle='--', label="Newton")
+plt.scatter(x, y)  # puntos originales
+
+plt.title("Interpolación: Lagrange vs Newton")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend()
+plt.grid()
+
+plt.show()
