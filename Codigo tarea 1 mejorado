@@ -1,0 +1,100 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+# ==================== CONFIGURACIÓN ====================
+# Ruta del archivo Excel
+archivo = "Ejercicio_semana2.xlsx"
+
+# Verificar si el archivo existe
+if not os.path.exists(archivo):
+    print(f"❌ ERROR: No se encontró el archivo '{archivo}'")
+    print(f"   El script se está ejecutando en: {os.getcwd()}")
+    print("   Por favor, copia el archivo Ejercicio_semana2.xlsx en esta carpeta.")
+    exit()  # Detiene el programa
+
+print(f"✅ Archivo encontrado: {archivo}")
+
+# Leer el Excel
+data = pd.read_excel(archivo)
+
+# Mostrar información útil para diagnosticar
+print("\nColumnas en el archivo Excel:", data.columns.tolist())
+print("Primeras 5 filas:")
+print(data.head())
+
+# ==================== EXTRAER x e y ====================
+# Opción 1: Usando nombres de columnas (cámbialos si son diferentes)
+# x = data['x'].values
+# y = data['y'].values
+
+# Opción 2: Usando posición de columnas (más seguro si no sabes los nombres exactos)
+x = data.iloc[:, 0].values   # Primera columna
+y = data.iloc[:, 1].values   # Segunda columna
+
+print(f"\nSe cargaron {len(x)} puntos")
+print(f"x = {x}")
+print(f"y = {y}")
+
+# ==================== MÉTODO DE LAGRANGE ====================
+def lagrange(x, y, xp):
+    n = len(x)
+    yp = 0.0
+    for i in range(n):
+        Li = 1.0
+        for j in range(n):
+            if i != j:
+                Li *= (xp - x[j]) / (x[i] - x[j])
+        yp += y[i] * Li
+    return yp
+
+# ==================== MÉTODO DE NEWTON ====================
+def diferencias_divididas(x, y):
+    n = len(x)
+    coef = np.copy(y).astype(float)
+    
+    for j in range(1, n):
+        for i in range(n-1, j-1, -1):
+            coef[i] = (coef[i] - coef[i-1]) / (x[i] - x[i-j])
+    
+    return coef
+
+def newton_eval(x, coef, xp):
+    n = len(coef)
+    yp = coef[-1]
+    for k in range(n-2, -1, -1):
+        yp = yp * (xp - x[k]) + coef[k]
+    return yp
+
+coef_newton = diferencias_divididas(x, y)
+
+# ==================== EVALUACIÓN EN x=3.5 ====================
+xp = 3.5
+y_lagrange = lagrange(x, y, xp)
+y_newton = newton_eval(x, coef_newton, xp)
+
+print("\n" + "="*40)
+print(f"Evaluación en x = {xp}")
+print(f"Lagrange : {y_lagrange:.6f}")
+print(f"Newton   : {y_newton:.6f}")
+print("="*40)
+
+# ==================== GRAFICAR ====================
+x_vals = np.linspace(min(x), max(x), 200)
+
+y_lag_vals = [lagrange(x, y, xi) for xi in x_vals]
+y_new_vals = [newton_eval(x, coef_newton, xi) for xi in x_vals]
+
+plt.figure(figsize=(10, 6))
+plt.plot(x_vals, y_lag_vals, label="Interpolación de Lagrange", linewidth=2)
+plt.plot(x_vals, y_new_vals, '--', label="Interpolación de Newton", linewidth=2)
+plt.scatter(x, y, color='red', zorder=5, label="Puntos originales")
+
+plt.title("Interpolación Polinómica: Lagrange vs Newton")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
